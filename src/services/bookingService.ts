@@ -1,97 +1,30 @@
-// import api from '@/lib/api';
-// import { Facility } from './facilityService';
-// import { User } from './authService';
-
-// export interface Booking {
-//   _id: string;
-//   facility: Facility;
-//   user: User;
-//   date: string;
-//   startTime: string;
-//   endTime: string;
-//   payableAmount: number;
-//   isBooked: 'confirmed' | 'unconfirmed' | 'canceled';
-// }
-
-// export interface TimeSlot {
-//   startTime: string;
-//   endTime: string;
-// }
-
-// export interface AvailableSlots {
-//   date: string;
-//   availableSlots: TimeSlot[];
-// }
-
-// export interface CreateBookingData {
-//   facility: string;
-//   date: string;
-//   startTime: string;
-//   endTime: string;
-// }
-
-// const bookingService = {
-//   async checkAvailability(params: {
-//     date: string;
-//     facility?: string;
-//   }): Promise<{ success: boolean; data: AvailableSlots[] }> {
-//     const response = await api.get('/bookings/check-availability', { params });
-//     return response.data;
-//   },
-
-//   async createBooking(data: CreateBookingData): Promise<{ success: boolean; data: Booking }> {
-//     const response = await api.post('/bookings', data);
-//     return response.data;
-//   },
-
-//   async getAllBookings(params?: {
-//     date?: string;
-//     page?: number;
-//     limit?: number;
-//   }): Promise<{ success: boolean; data: Booking[]; meta?: any }> {
-//     const response = await api.get('/bookings', { params });
-//     return response.data;
-//   },
-
-//   async getUserBookings(): Promise<{ success: boolean; data: Booking[] }> {
-//     const response = await api.get('/bookings/user');
-//     return response.data;
-//   },
-
-//   async cancelBooking(id: string): Promise<{ success: boolean; data: Booking }> {
-//     const response = await api.delete(`/bookings/${id}`);
-//     return response.data;
-//   },
-// };
-
-// export default bookingService;
-
-
 import api from '@/lib/api';
 import { Facility } from './facilityService';
 import { User } from './authService';
 
 export interface Booking {
   _id: string;
-  facility: Facility;
-  user: User;
   date: string;
   startTime: string;
   endTime: string;
+  user: User | string;
+  facility: Facility | string;
   payableAmount: number;
   isBooked: 'confirmed' | 'unconfirmed' | 'canceled';
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface TimeSlot {
-  startTime: string;
-  endTime: string;
+export interface BookingResponse {
+  success: boolean;
+  message: string;
+  data: Booking;
 }
 
-export interface AvailableSlots {
-  date: string;
-  availableSlots: TimeSlot[];
+export interface BookingsResponse {
+  success: boolean;
+  message: string;
+  data: Booking[];
 }
 
 export interface CreateBookingData {
@@ -102,44 +35,48 @@ export interface CreateBookingData {
 }
 
 const bookingService = {
-  // Check availability
-  async checkAvailability(params: {
-    date: string;
-    facility?: string;
-  }): Promise<AvailableSlots[]> {
-    const response = await api.get<{ success: boolean; data: AvailableSlots[] }>(
-      '/bookings/check-availability',
-      { params }
-    );
-    return response.data.data;
-  },
-
-  // Create booking
+  // Create a new booking
   async createBooking(data: CreateBookingData): Promise<Booking> {
-    const response = await api.post<{ success: boolean; data: Booking }>('/bookings', data);
+    const response = await api.post<BookingResponse>('/bookings', data);
     return response.data.data;
   },
 
   // Get all bookings (Admin only)
-  async getAllBookings(params?: {
-    date?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<Booking[]> {
-    const response = await api.get<{ success: boolean; data: Booking[] }>('/bookings', { params });
+  async getAllBookings(): Promise<Booking[]> {
+    const response = await api.get<BookingsResponse>('/bookings');
     return response.data.data;
   },
 
-  // Get user bookings
+  // Get user's bookings
   async getUserBookings(): Promise<Booking[]> {
-    const response = await api.get<{ success: boolean; data: Booking[] }>('/bookings/user');
+    const response = await api.get<BookingsResponse>('/bookings/user');
+    return response.data.data;
+  },
+
+  // Get single booking by ID
+  async getBookingById(id: string): Promise<Booking> {
+    const response = await api.get<BookingResponse>(`/bookings/${id}`);
     return response.data.data;
   },
 
   // Cancel booking
   async cancelBooking(id: string): Promise<Booking> {
-    const response = await api.delete<{ success: boolean; data: Booking }>(`/bookings/${id}`);
+    const response = await api.delete<BookingResponse>(`/bookings/${id}`);
     return response.data.data;
+  },
+
+  // Initiate payment (SSLCommerz)
+  async initiatePayment(bookingId: string): Promise<{ url: string }> {
+    const response = await api.post<{ success: boolean; data: { url: string } }>(
+      `/payment/initiate/${bookingId}`
+    );
+    return response.data.data;
+  },
+
+  // Verify payment
+  async verifyPayment(transactionId: string): Promise<BookingResponse> {
+    const response = await api.get<BookingResponse>(`/payment/verify/${transactionId}`);
+    return response.data;
   },
 };
 

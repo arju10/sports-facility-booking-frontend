@@ -1,76 +1,3 @@
-// import api from '@/lib/api';
-
-// export interface Facility {
-//   _id: string;
-//   name: string;
-//   description: string;
-//   pricePerHour: number;
-//   location: string;
-//   image?: string;
-//   isDeleted: boolean;
-// }
-
-// export interface FacilityResponse {
-//   success: boolean;
-//   statusCode: number;
-//   message: string;
-//   data: Facility[];
-//   meta?: {
-//     page: number;
-//     limit: number;
-//     total: number;
-//     totalPages: number;
-//   };
-// }
-
-// const facilityService = {
-//   async getAllFacilities(params?: {
-//     searchTerm?: string;
-//     page?: number;
-//     limit?: number;
-//     sort?: string;
-//   }): Promise<FacilityResponse> {
-//     const response = await api.get<FacilityResponse>('/facility', { params });
-//     return response.data;
-//   },
-
-//   async getFacilityById(id: string): Promise<{ success: boolean; data: Facility }> {
-//     const response = await api.get(`/facility/${id}`);
-//     return response.data;
-//   },
-
-//   async createFacility(data: {
-//     name: string;
-//     description: string;
-//     pricePerHour: number;
-//     location: string;
-//     image?: string;
-//   }): Promise<{ success: boolean; data: Facility }> {
-//     const response = await api.post('/facility', data);
-//     return response.data;
-//   },
-
-//   async updateFacility(
-//     id: string,
-//     data: Partial<{
-//       name: string;
-//       description: string;
-//       pricePerHour: number;
-//       location: string;
-//       image?: string;
-//     }>
-//   ): Promise<{ success: boolean; data: Facility }> {
-//     const response = await api.put(`/facility/${id}`, data);
-//     return response.data;
-//   },
-
-//   async deleteFacility(id: string): Promise<void> {
-//     await api.delete(`/facility/${id}`);
-//   },
-// };
-
-// export default facilityService;
-
 import api from '@/lib/api';
 
 export interface Facility {
@@ -79,23 +6,22 @@ export interface Facility {
   description: string;
   pricePerHour: number;
   location: string;
-  image?: string;
+  image: string;
   isDeleted: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FacilityResponse {
   success: boolean;
-  statusCode: number;
+  message: string;
+  data: Facility;
+}
+
+export interface FacilitiesResponse {
+  success: boolean;
   message: string;
   data: Facility[];
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
 }
 
 export interface CreateFacilityData {
@@ -103,86 +29,60 @@ export interface CreateFacilityData {
   description: string;
   pricePerHour: number;
   location: string;
-  image?: File | string; // Support both file upload and URL
+  image: string;
+}
+
+export interface UpdateFacilityData extends Partial<CreateFacilityData> {}
+
+export interface AvailabilitySlot {
+  startTime: string;
+  endTime: string;
+  isBooked: boolean;
+}
+
+export interface AvailabilityResponse {
+  success: boolean;
+  message: string;
+  data: AvailabilitySlot[];
 }
 
 const facilityService = {
   // Get all facilities
-  async getAllFacilities(params?: {
-    searchTerm?: string;
-    page?: number;
-    limit?: number;
-    sort?: string;
-  }): Promise<Facility[]> {
-    const response = await api.get<FacilityResponse>('/facility', { params });
+  async getAllFacilities(): Promise<Facility[]> {
+    const response = await api.get<FacilitiesResponse>('/facility');
     return response.data.data;
   },
 
-  // Get facility by ID
+  // Get single facility by ID
   async getFacilityById(id: string): Promise<Facility> {
-    const response = await api.get<{ success: boolean; data: Facility }>(`/facility/${id}`);
+    const response = await api.get<FacilityResponse>(`/facility/${id}`);
     return response.data.data;
   },
 
-  // Create facility with image upload
+  // Create new facility (Admin only)
   async createFacility(data: CreateFacilityData): Promise<Facility> {
-    const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('description', data.description);
-    formData.append('pricePerHour', data.pricePerHour.toString());
-    formData.append('location', data.location);
-    
-    if (data.image) {
-      if (data.image instanceof File) {
-        formData.append('image', data.image);
-      } else {
-        formData.append('image', data.image); // URL string
-      }
-    }
-
-    const response = await api.post<{ success: boolean; data: Facility }>(
-      '/facility',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+    const response = await api.post<FacilityResponse>('/facility', data);
     return response.data.data;
   },
 
-  // Update facility
-  async updateFacility(id: string, data: Partial<CreateFacilityData>): Promise<Facility> {
-    const formData = new FormData();
-    
-    if (data.name) formData.append('name', data.name);
-    if (data.description) formData.append('description', data.description);
-    if (data.pricePerHour) formData.append('pricePerHour', data.pricePerHour.toString());
-    if (data.location) formData.append('location', data.location);
-    if (data.image) {
-      if (data.image instanceof File) {
-        formData.append('image', data.image);
-      } else {
-        formData.append('image', data.image);
-      }
-    }
-
-    const response = await api.put<{ success: boolean; data: Facility }>(
-      `/facility/${id}`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+  // Update facility (Admin only)
+  async updateFacility(id: string, data: UpdateFacilityData): Promise<Facility> {
+    const response = await api.put<FacilityResponse>(`/facility/${id}`, data);
     return response.data.data;
   },
 
-  // Delete facility
-  async deleteFacility(id: string): Promise<void> {
-    await api.delete(`/facility/${id}`);
+  // Delete facility - Soft delete (Admin only)
+  async deleteFacility(id: string): Promise<FacilityResponse> {
+    const response = await api.delete<FacilityResponse>(`/facility/${id}`);
+    return response.data;
+  },
+
+  // Check availability for a facility on a specific date
+  async checkAvailability(facilityId: string, date: string): Promise<AvailabilitySlot[]> {
+    const response = await api.get<AvailabilityResponse>(
+      `/check-availability?date=${date}&facility=${facilityId}`
+    );
+    return response.data.data;
   },
 };
 
